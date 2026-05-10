@@ -21,6 +21,7 @@ const httpServer = createServer((req, res) => {
 const io = new Server(httpServer, {
   cors: { origin: "*", methods: ["GET", "POST"] },
   transports: ["websocket", "polling"],
+  maxHttpBufferSize: 1e8, // 100MB to allow large base64 file transfers
 });
 
 // sessions: { [sessionId]: { desktop: socket, mobile: socket, files: [], createdAt } }

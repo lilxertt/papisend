@@ -8,6 +8,8 @@ import ActivityFeed from "@/components/ActivityFeed";
 import { ToastContainer } from "@/components/Toast";
 import { formatBytes, getFileIcon } from "@/lib/utils";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { useRef } from "react";
 
 type SidebarTab = "dashboard" | "transfers" | "devices" | "settings";
 
@@ -23,6 +25,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<SidebarTab>("dashboard");
   const [toasts, setToasts] = useState<{ id: string; message: string; type?: "success" | "info" | "error" }[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   const addToast = useCallback((message: string, type: "success" | "info" | "error" = "success") => {
     const id = Math.random().toString(36).slice(2);
@@ -178,108 +181,59 @@ export default function DashboardPage() {
           {/* Content area */}
           <div className="flex-1 overflow-auto p-6">
             {activeTab === "dashboard" && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-
-                {/* CENTER — Drop zone */}
-                <div className="lg:col-span-2 space-y-6">
-                  <div
-                    className="rounded-2xl p-6"
-                    style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="font-bold tracking-tight">Send Files</h2>
-                      {!mobileConnected && (
-                        <span className="text-xs px-3 py-1 rounded-full" style={{ background: "rgba(255,214,10,0.08)", color: "#FFD60A", border: "1px solid rgba(255,214,10,0.2)" }}>
-                          Connect mobile first
-                        </span>
-                      )}
-                    </div>
-                    <DropZone onFiles={handleFiles} disabled={!mobileConnected} />
-                  </div>
-
-                  {/* Received files */}
-                  {receivedFiles.length > 0 && (
-                    <div
-                      className="rounded-2xl p-6"
-                      style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}
-                    >
-                      <h2 className="font-bold tracking-tight mb-4">Received Files</h2>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {receivedFiles.map((f) => (
-                          <a
-                            key={f.id}
-                            href={f.dataUrl}
-                            download={f.name}
-                            className="group rounded-xl p-3 transition-all duration-200 flex flex-col gap-2"
-                            style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}
-                            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(0,168,255,0.06)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,168,255,0.2)"; }}
-                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.06)"; }}
-                          >
-                            {f.type.startsWith("image/") ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={f.dataUrl} alt={f.name} className="w-full h-20 object-cover rounded-lg" />
-                            ) : (
-                              <div
-                                className="w-full h-20 rounded-lg flex items-center justify-center text-3xl"
-                                style={{ background: "rgba(0,168,255,0.06)" }}
-                              >
-                                {getFileIcon(f.type)}
-                              </div>
-                            )}
-                            <p className="text-xs font-medium text-white truncate">{f.name}</p>
-                            <p className="text-xs" style={{ color: "rgba(0,168,255,0.6)" }}>↓ Download</p>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+              <div ref={canvasRef} className="relative w-full h-full rounded-3xl overflow-hidden" style={{ border: "2px dashed rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.01)" }}>
+                {/* Canvas Background Label */}
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-5">
+                  <span className="text-8xl font-black tracking-tighter">CANVAS</span>
                 </div>
 
-                {/* RIGHT — Activity + Stats */}
-                <div className="space-y-4">
-                  {/* Stats row */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { label: "Files Received", value: receivedFiles.length, color: "#00A8FF" },
-                      { label: "Ping", value: sessionState?.ping != null ? `${sessionState.ping}ms` : "—", color: "#00FF87" },
-                    ].map((stat, i) => (
-                      <div
-                        key={i}
-                        className="rounded-2xl p-4"
-                        style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}
-                      >
-                        <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>{stat.label}</p>
-                        <p className="text-2xl font-bold" style={{ color: stat.color, letterSpacing: "-0.03em" }}>{stat.value}</p>
-                      </div>
-                    ))}
-                  </div>
+                {/* Fixed Dropzone at bottom right */}
+                <div className="absolute bottom-6 right-6 w-80 z-20">
+                  <DropZone onFiles={handleFiles} disabled={!mobileConnected} />
+                </div>
 
-                  {/* Activity feed */}
-                  <div
-                    className="rounded-2xl p-5"
-                    style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-bold text-sm tracking-tight">Live Activity</h3>
-                      <div className="status-dot" style={{ width: 6, height: 6 }} />
+                {/* Session Info & Stats at top left */}
+                <div className="absolute top-6 left-6 z-20 flex flex-col gap-4">
+                  {!mobileConnected && (
+                    <div className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
+                      Connect mobile first to send files
                     </div>
-                    <ActivityFeed activities={activities} />
-                  </div>
-
-                  {/* Session info */}
+                  )}
                   {sessionId && (
-                    <div
-                      className="rounded-2xl p-4"
-                      style={{ background: "rgba(0,168,255,0.04)", border: "1px solid rgba(0,168,255,0.12)" }}
-                    >
-                      <p className="text-xs mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>Session ID</p>
-                      <p className="font-mono text-sm font-bold" style={{ color: "#00A8FF", letterSpacing: "0.1em" }}>{sessionId}</p>
-                      <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.25)" }}>
-                        Share with mobile → go to /mobile?session={sessionId}
-                      </p>
+                    <div className="rounded-2xl p-4 backdrop-blur-md shadow-2xl" style={{ background: "rgba(0,168,255,0.05)", border: "1px solid rgba(0,168,255,0.15)" }}>
+                      <p className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>Session ID</p>
+                      <p className="font-mono text-lg font-bold text-blue-400">{sessionId}</p>
                     </div>
                   )}
                 </div>
+
+                {/* Draggable Files */}
+                {receivedFiles.map((f, i) => (
+                  <motion.a
+                    drag
+                    dragConstraints={canvasRef}
+                    dragMomentum={false}
+                    key={f.id}
+                    href={f.dataUrl}
+                    download={f.name}
+                    initial={{ x: 50 + (i * 20), y: 150 + (i * 20), opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="absolute z-10 flex flex-col items-center gap-2 cursor-grab active:cursor-grabbing p-4 rounded-3xl shadow-xl transition-colors"
+                    style={{ width: 120, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(12px)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,168,255,0.08)"; e.currentTarget.style.borderColor = "rgba(0,168,255,0.3)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+                  >
+                    {f.type.startsWith("image/") ? (
+                      <img src={f.dataUrl} alt={f.name} className="w-20 h-20 object-cover rounded-2xl pointer-events-none shadow-md" />
+                    ) : (
+                      <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl shadow-md pointer-events-none" style={{ background: "rgba(0,168,255,0.1)", color: "#00A8FF" }}>
+                        {getFileIcon(f.type)}
+                      </div>
+                    )}
+                    <span className="text-[11px] font-semibold text-white truncate w-full text-center pointer-events-none mt-1">{f.name}</span>
+                    <span className="text-[9px] text-blue-400 pointer-events-none uppercase tracking-wider">Download</span>
+                  </motion.a>
+                ))}
               </div>
             )}
 

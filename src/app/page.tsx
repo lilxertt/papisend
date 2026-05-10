@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ParticleCanvas from "@/components/ParticleCanvas";
 import CursorGlow from "@/components/CursorGlow";
@@ -10,12 +11,19 @@ import { useSocket } from "@/hooks/useSocket";
 export default function HomePage() {
   const { sessionId, sessionState, createSession, connected } = useSocket("desktop");
   const heroRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (connected && !sessionId) {
       createSession("My Desktop");
     }
   }, [connected, sessionId, createSession]);
+
+  useEffect(() => {
+    if (sessionState?.mobileConnected) {
+      router.push("/dashboard");
+    }
+  }, [sessionState?.mobileConnected, router]);
 
   // Tilt effect on cards
   const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
